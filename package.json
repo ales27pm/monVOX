@@ -1,20 +1,49 @@
 {
   "name": "monvox",
   "version": "1.0.0",
+  "description": "Privacy-first AI assistant built with React Native and Expo",
   "main": "index.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/ales27pm/monVOX.git"
   },
-  "author": "ales27pm",
+  "homepage": "https://github.com/ales27pm/monVOX#readme",
+  "bugs": {
+    "url": "https://github.com/ales27pm/monVOX/issues"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "ai-assistant",
+    "privacy",
+    "security",
+    "on-device",
+    "biometric-auth",
+    "llm",
+    "french-canadian"
+  ],
+  "author": {
+    "name": "ales27pm",
+    "url": "https://github.com/ales27pm"
+  },
   "license": "MIT",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "build:android": "expo build:android",
+    "build:ios": "expo build:ios",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src/**/*.{ts,tsx}",
+    "lint:fix": "eslint src/**/*.{ts,tsx} --fix",
+    "type-check": "tsc --noEmit",
     "security-check": "node scripts/verify-security.js",
-    "precommit": "npm run security-check"
+    "precommit": "npm run security-check && npm run lint && npm run type-check",
+    "clean": "expo r -c",
+    "bundle:analyze": "npx expo export --platform ios --dev false"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

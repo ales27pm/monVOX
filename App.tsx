@@ -6,6 +6,7 @@ import { useAppStore } from "./src/state/appState";
 import { OnboardingScreen } from "./src/screens/OnboardingScreen";
 import { ChatScreen } from "./src/screens/ChatScreen";
 import { SettingsScreen } from "./src/screens/SettingsScreen";
+import { ErrorBoundary } from "./src/components/ErrorBoundary";
 import FeatureFlagService from "./src/services/FeatureFlagService";
 import PerformanceMonitor from "./src/services/PerformanceMonitor";
 
@@ -43,18 +44,20 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      <NavigationContainer>
-        <StatusBar style="dark" backgroundColor="#FFFFFF" />
-        
-        {!hasCompletedOnboarding ? (
-          <OnboardingScreen />
-        ) : showSettings ? (
-          <SettingsScreen onClose={() => setShowSettings(false)} />
-        ) : (
-          <ChatScreen onShowSettings={() => setShowSettings(true)} />
-        )}
-      </NavigationContainer>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <NavigationContainer>
+          <StatusBar style="dark" backgroundColor="#FFFFFF" />
+          
+          {!hasCompletedOnboarding ? (
+            <OnboardingScreen />
+          ) : showSettings ? (
+            <SettingsScreen onClose={() => setShowSettings(false)} />
+          ) : (
+            <ChatScreen onShowSettings={() => setShowSettings(true)} />
+          )}
+        </NavigationContainer>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }

@@ -50,6 +50,7 @@ class FeatureFlagService {
   private flags: Map<string, FeatureFlag> = new Map();
   private userId: string | null = null;
   private initialized = false;
+  private initializationPromise: Promise<void> | null = null;
 
   public static getInstance(): FeatureFlagService {
     if (!FeatureFlagService.instance) {
@@ -108,6 +109,21 @@ class FeatureFlagService {
   }
 
   async initialize(userId?: string): Promise<void> {
+    // Return existing initialization promise if already initializing
+    if (this.initializationPromise) {
+      return this.initializationPromise;
+    }
+    
+    // If already initialized, return immediately
+    if (this.initialized) {
+      return Promise.resolve();
+    }
+
+    this.initializationPromise = this.performInitialization(userId);
+    return this.initializationPromise;
+  }
+
+  private async performInitialization(userId?: string): Promise<void> {
     this.userId = userId || 'anonymous';
     
     try {

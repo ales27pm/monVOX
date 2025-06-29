@@ -368,11 +368,15 @@ export class LLMFactory {
   }
 }
 
-// Resilient LLM Service with fallback strategies
+// Resilient LLM Service with fallback strategies and circuit breaker
 export class ResilientLLMService {
   private static instance: ResilientLLMService;
   private primaryProvider: LLMProvider;
   private fallbackProviders: LLMProvider[];
+  private failureCount: Map<string, number> = new Map();
+  private lastFailureTime: Map<string, number> = new Map();
+  private readonly CIRCUIT_BREAKER_THRESHOLD = 3;
+  private readonly CIRCUIT_BREAKER_TIMEOUT = 60000; // 1 minute
 
   public static getInstance(): ResilientLLMService {
     if (!ResilientLLMService.instance) {
@@ -398,6 +402,9 @@ export class ResilientLLMService {
     ];
   }
 
+  /**
+   * Generate response with circuit breaker pattern and intelligent fallback
+   */
   async generateResponse(
     messages: AIMessage[],
     options?: LLMOptions
@@ -405,29 +412,65 @@ export class ResilientLLMService {
     // Ensure providers are initialized with current feature flags
     await this.initializeProviders();
     
-    // Try primary provider
-    try {
-      if (await this.primaryProvider.isAvailable()) {
-        return await this.primaryProvider.generateResponse(messages, options);
+    // Try primary provider with circuit breaker
+    if (this.shouldAttemptProvider(this.primaryProvider.name)) {
+      try {
+        if (await this.primaryProvider.isAvailable()) {
+          const response = await this.primaryProvider.generateResponse(messages, options);
+          this.recordSuccess(this.primaryProvider.name);
+          return response;
+        }
+      } catch (error) {
+        this.recordFailure(this.primaryProvider.name);
+        console.warn('Primary LLM provider failed:', error);
+        AuditService.getInstance().log('auth_failed', `Primary LLM failed: ${error}`);
       }
-    } catch (error) {
-      console.warn('Primary LLM provider failed:', error);
-      AuditService.getInstance().log('auth_failed', `Primary LLM failed: ${error}`);
     }
 
-    // Try fallback providers
+    // Try fallback providers with circuit breaker
     for (const fallback of this.fallbackProviders) {
+      if (!this.shouldAttemptProvider(fallback.name)) continue;
+      
       try {
         if (await fallback.isAvailable()) {
           AuditService.getInstance().log('settings_change', `Falling back to ${fallback.name}`);
-          return await fallback.generateResponse(messages, options);
+          const response = await fallback.generateResponse(messages, options);
+          this.recordSuccess(fallback.name);
+          return response;
         }
       } catch (error) {
+        this.recordFailure(fallback.name);
         console.warn(`Fallback provider ${fallback.name} failed:`, error);
       }
     }
 
     throw new Error('All LLM providers are currently unavailable');
+  }
+
+  /**
+   * Circuit breaker logic to prevent cascading failures
+   */
+  private shouldAttemptProvider(providerName: string): boolean {
+    const failures = this.failureCount.get(providerName) || 0;
+    const lastFailure = this.lastFailureTime.get(providerName) || 0;
+    
+    if (failures < this.CIRCUIT_BREAKER_THRESHOLD) {
+      return true;
+    }
+    
+    // Allow retry after timeout period
+    return Date.now() - lastFailure > this.CIRCUIT_BREAKER_TIMEOUT;
+  }
+
+  private recordSuccess(providerName: string): void {
+    this.failureCount.set(providerName, 0);
+    this.lastFailureTime.delete(providerName);
+  }
+
+  private recordFailure(providerName: string): void {
+    const currentFailures = this.failureCount.get(providerName) || 0;
+    this.failureCount.set(providerName, currentFailures + 1);
+    this.lastFailureTime.set(providerName, Date.now());
   }
 
   async streamResponse(

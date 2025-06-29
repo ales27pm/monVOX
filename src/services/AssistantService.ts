@@ -10,6 +10,7 @@ export class AssistantService {
   private static instance: AssistantService;
   private memoryService = MemoryService.getInstance();
   private auditService = AuditService.getInstance();
+  private isGenerating = false;
 
   public static getInstance(): AssistantService {
     if (!AssistantService.instance) {
@@ -20,11 +21,32 @@ export class AssistantService {
 
   private constructor() {}
 
+  /**
+   * Check if the service is currently generating a response
+   */
+  public isCurrentlyGenerating(): boolean {
+    return this.isGenerating;
+  }
+
+  /**
+   * Generate AI response with streaming support and context memory
+   * @param messages Conversation history
+   * @param onToken Callback for streaming tokens
+   * @param onComplete Callback when response is complete
+   * @returns Complete response text
+   */
   async generateResponse(
     messages: AssistantMessage[],
     onToken?: (token: string) => void,
     onComplete?: (fullResponse: string) => void
   ): Promise<string> {
+    // Prevent concurrent generation
+    if (this.isGenerating) {
+      throw new Error('Une réponse est déjà en cours de génération');
+    }
+
+    this.isGenerating = true;
+    
     try {
       // Convert messages to AI format
       const aiMessages: AIMessage[] = messages.map(msg => ({
@@ -118,6 +140,8 @@ export class AssistantService {
     } catch (error) {
       console.error('Failed to generate response:', error);
       return this.handleGenerationError(error, onToken, onComplete);
+    } finally {
+      this.isGenerating = false;
     }
   }
 
