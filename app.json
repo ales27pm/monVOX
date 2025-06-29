@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "monVOX",
+    "slug": "monvox",
+    "scheme": "monvox",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "This app uses Face ID for secure authentication to protect your private conversations."
+      }
+    },
+    "android": {
+      "edgeToEdgeEnabled": true,
+      "permissions": ["USE_BIOMETRIC", "USE_FINGERPRINT"]
+    },
+    "plugins": [
+      "expo-local-authentication"
+    ]
+  }
+}
